@@ -1,4 +1,4 @@
-#define _title "Color cells - ver. 0.1:1"
+#define _title "Color cells - ver. 0.11"
 #include <iostream>
 #include <algorithm>
 #include <vector>

@@ -1,4 +1,4 @@
-#define _title "Color cells - ver. 0.11"
+#define _title "Color Cells - ver. 0.12"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -117,7 +117,6 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
         sf::Vector2i pos = sf::Mouse::getPosition(window);
         if (pos.x > 0 && pos.y > 0) {
             if (pos.x < (9 * cellSize) + (9 * borderThinkness) && pos.y < (9 * cellSize) + (9 * borderThinkness)) {
-                //createCell(field, pos.x / (cellSize + borderThinkness), pos.y / (cellSize + borderThinkness), curMode);
                 uint16_t fx = pos.y / (cellSize + borderThinkness), fy = pos.x / (cellSize + borderThinkness);
                 field[fx][fy] = colors[std::rand() % 7];
             }
@@ -125,7 +124,15 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
         isMousePressed = true;
     }
     else if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-        return;
+        if (isMousePressed) return;
+        sf::Vector2i pos = sf::Mouse::getPosition(window);
+        if (pos.x > 0 && pos.y > 0) {
+            if (pos.x < (9 * cellSize) + (9 * borderThinkness) && pos.y < (9 * cellSize) + (9 * borderThinkness)) {
+                uint16_t fx = pos.y / (cellSize + borderThinkness), fy = pos.x / (cellSize + borderThinkness);
+                field[fx][fy] = 0;
+            }
+        }
+        isMousePressed = true;
     }
     else if (event.type == sf::Event::MouseButtonReleased) isMousePressed = false;
 

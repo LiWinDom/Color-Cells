@@ -1,4 +1,4 @@
-#define _title "Color Cells - ver. 0.3"
+#define _title "Color Cells - ver. 0.31"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -164,15 +164,19 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
             if (pos.x < (9 * cellSize) + (9 * borderThinkness) && pos.y < (9 * cellSize) + (9 * borderThinkness)) {
                 uint16_t fx = pos.y / (cellSize + borderThinkness), fy = pos.x / (cellSize + borderThinkness);
                 if (selected.first == -1 || selected.second == -1) {
-                    selected.first = fx;
-                    selected.second = fy;
+                    if (field[fx][fy] != 0) {
+                        selected.first = fx;
+                        selected.second = fy;
+                    }
                 }
                 else {
-                    field[fx][fy] = field[selected.first][selected.second];
-                    field[selected.first][selected.second] = 0;
+                    if (field[fx][fy] == 0) {
+                        field[fx][fy] = field[selected.first][selected.second];
+                        field[selected.first][selected.second] = 0;
+                        if (!addCells()) gameOver = true;
+                    }
                     selected.first = -1;
                     selected.second = -1;
-                    if (!addCells()) gameOver = true;
                 }
             }
         }
@@ -201,7 +205,7 @@ int main() {
         drawBorders(gameWindow);
         showField(gameWindow);
         if (gameOver) showText(gameWindow, "You lose!", "Your score:");
-        else showText(gameWindow, "Your score:", "Highscore");
+        else showText(gameWindow, "Your score:", "Highscore:");
         gameWindow.display();
     }
 

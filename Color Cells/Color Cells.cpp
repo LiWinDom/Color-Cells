@@ -1,4 +1,4 @@
-#define _title "Color Cells - ver. 0.12"
+#define _title "Color Cells - ver. 0.3"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -14,18 +14,54 @@ const uint32_t borderColor = 0xA0A0A0FF; //color of borders in HEX format (0x112
 const uint8_t borderThinkness = 2; //border thinkness in pixels, set to 0, if you don't want to see borders
 
 std::vector<std::vector<uint8_t>> field;
-uint8_t colors[7] = {195, 51, 15, 243, 207, 63, 227};
+std::pair<int8_t, int8_t> selected(-1, -1);
+bool gameOver = false;
+const uint8_t colors[7] = {195, 51, 15, 243, 207, 63, 227};
 //                    |   |   |    |    |   |    |
 //                   red  |  blue  | magenta|  orange
 //                      green    yellow    cyan
 
-void startup(sf::RenderWindow& window) {
+uint8_t countFreeCells() {
+    uint8_t free = 0;
+
+    for (int i = 0; i < 9; ++i) {
+        for (int j = 0; j < 9; ++j) {
+            if (field[i][j] == 0) ++free;
+        }
+    }
+    return free;
+}
+
+bool addCells(uint8_t toAdd = 3) {
+    if (countFreeCells() < toAdd) return false;
+    for (int k = 0; k < toAdd; ++k) {
+        do {
+            uint8_t addX = std::rand() % 9, addY = std::rand() % 9;
+            if (field[addX][addY] == 0) {
+                field[addX][addY] = colors[std::rand() % 7];
+                break;
+            }
+        }
+        while (true);
+    }
+    return true;
+}
+
+void reload() {
     std::srand(std::time(nullptr));
     field.assign(9, std::vector<uint8_t>(9, 0));
+    gameOver = false;
+    addCells();
+
+    return;
+}
+
+void startup(sf::RenderWindow& window) {
     sf::Image icon;
     icon.loadFromFile("resourses/grafics/icon.png");
     window.setIcon(48, 48, icon.getPixelsPtr());
     window.setVerticalSyncEnabled(true);
+    reload();
 
     return;
 }
@@ -72,9 +108,15 @@ void showField(sf::RenderWindow& window) {
             uint32_t color = convertColor(field[i][j]);
 
             sf::RectangleShape rect;
-            rect.setSize(sf::Vector2f(cellSize - borderThinkness * 2, cellSize - borderThinkness * 2));
+            if (i == selected.first && j == selected.second) {
+                rect.setSize(sf::Vector2f(cellSize - borderThinkness * 6, cellSize - borderThinkness * 6));
+                rect.setPosition(j * cellSize + (j + 4) * borderThinkness, i * cellSize + (i + 4) * borderThinkness);
+            }
+            else {
+                rect.setSize(sf::Vector2f(cellSize - borderThinkness * 2, cellSize - borderThinkness * 2));
+                rect.setPosition(j * cellSize + (j + 2) * borderThinkness, i * cellSize + (i + 2) * borderThinkness);
+            }
             rect.setOutlineThickness(0);
-            rect.setPosition(j * cellSize + (j + 1) * borderThinkness + borderThinkness, i * cellSize + (i + 1) * borderThinkness + borderThinkness);
             rect.setFillColor(sf::Color(color));
             window.draw(rect);
         }
@@ -82,7 +124,7 @@ void showField(sf::RenderWindow& window) {
     return;
 }
 
-void showText(sf::RenderWindow& window, const std::string& score, const std::string& highscore) {
+void showText(sf::RenderWindow& window, const std::string& first, const std::string& second) {
     sf::Font font;
 
     font.loadFromFile("resourses/Chava.ttf");
@@ -94,8 +136,8 @@ void showText(sf::RenderWindow& window, const std::string& score, const std::str
     highscoreText.setCharacterSize(fontSize);
     scoreText.setFillColor(sf::Color(textColor));
     highscoreText.setFillColor(sf::Color(textColor));
-    scoreText.setString("Your score: " + score);
-    highscoreText.setString("Highscore: " + highscore);
+    scoreText.setString(first);
+    highscoreText.setString(second);
 
     scoreText.setPosition(fontSize * 0.25, (9 * cellSize) + 9 * borderThinkness + fontSize * 0.25);
     highscoreText.setPosition(fontSize * 0.25, (9 * cellSize) + 9 * borderThinkness + fontSize * 1.5);
@@ -110,28 +152,36 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
 
     if (event.type == sf::Event::Closed) window.close();
     else if (event.type == sf::Event::KeyPressed) {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::R)) {
+            reload();
+        }
         return;
     }
     else if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-        if (isMousePressed) return;
+        if (isMousePressed || gameOver) return;
         sf::Vector2i pos = sf::Mouse::getPosition(window);
         if (pos.x > 0 && pos.y > 0) {
             if (pos.x < (9 * cellSize) + (9 * borderThinkness) && pos.y < (9 * cellSize) + (9 * borderThinkness)) {
                 uint16_t fx = pos.y / (cellSize + borderThinkness), fy = pos.x / (cellSize + borderThinkness);
-                field[fx][fy] = colors[std::rand() % 7];
+                if (selected.first == -1 || selected.second == -1) {
+                    selected.first = fx;
+                    selected.second = fy;
+                }
+                else {
+                    field[fx][fy] = field[selected.first][selected.second];
+                    field[selected.first][selected.second] = 0;
+                    selected.first = -1;
+                    selected.second = -1;
+                    if (!addCells()) gameOver = true;
+                }
             }
         }
         isMousePressed = true;
     }
     else if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
         if (isMousePressed) return;
-        sf::Vector2i pos = sf::Mouse::getPosition(window);
-        if (pos.x > 0 && pos.y > 0) {
-            if (pos.x < (9 * cellSize) + (9 * borderThinkness) && pos.y < (9 * cellSize) + (9 * borderThinkness)) {
-                uint16_t fx = pos.y / (cellSize + borderThinkness), fy = pos.x / (cellSize + borderThinkness);
-                field[fx][fy] = 0;
-            }
-        }
+        selected.first = -1;
+        selected.second = -1;
         isMousePressed = true;
     }
     else if (event.type == sf::Event::MouseButtonReleased) isMousePressed = false;
@@ -150,7 +200,8 @@ int main() {
 
         drawBorders(gameWindow);
         showField(gameWindow);
-        showText(gameWindow, "100", "250");
+        if (gameOver) showText(gameWindow, "You lose!", "Your score:");
+        else showText(gameWindow, "Your score:", "Highscore");
         gameWindow.display();
     }
 

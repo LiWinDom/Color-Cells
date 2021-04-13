@@ -1,4 +1,4 @@
-#define _title "Color Cells - ver. 0.4"
+#define _title "Color Cells - ver. 0.42"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -220,6 +220,8 @@ bool moveCell(sf::RenderWindow& window, const uint8_t& x1, const uint8_t& y1, co
         }
 
         field[curX][curY] = cell;
+        selected.first = curX;
+        selected.second = curY;
         display(window);
         sf::sleep(sf::milliseconds(60));
     }

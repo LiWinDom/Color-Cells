@@ -1,4 +1,4 @@
-#define _title "Color Cells - ver. 0.32"
+#define _title "Color Cells - ver. 0.4"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -17,9 +17,9 @@ std::vector<std::vector<uint8_t>> field;
 std::pair<int8_t, int8_t> selected(-1, -1);
 bool gameOver = false;
 const uint8_t colors[7] = {195, 51, 15, 243, 207, 63, 227};
-//                    |   |   |    |    |   |    |
-//                   red  |  blue  | magenta|  orange
-//                      green    yellow    cyan
+//                          |   |   |    |    |   |    |
+//                         red  |  blue  | magenta|  orange
+//                            green    yellow    cyan
 
 uint8_t countFreeCells() {
     uint8_t free = 0;
@@ -60,9 +60,39 @@ void startup(sf::RenderWindow& window) {
     icon.loadFromFile("resourses/grafics/icon.png");
     window.setIcon(48, 48, icon.getPixelsPtr());
     window.setVerticalSyncEnabled(true);
+    std::srand(std::time(nullptr));
     reload();
 
     return;
+}
+
+void liAlg(std::vector<std::vector<int8_t>>& liField, const uint8_t& cellX, const uint8_t& cellY, const uint8_t& x, const uint8_t& y, const uint8_t counter = 0) {
+    liField[x][y] = counter;
+    if (x > 0) {
+        if ((field[x - 1][y] == 0 || (x - 1 == cellX && y == cellY)) && (liField[x - 1][y] > counter + 1 || liField[x - 1][y] == -1)) {
+            liAlg(liField, cellX, cellY, x - 1, y, counter + 1);
+        }
+    }
+    if (x < 8) {
+        if ((field[x + 1][y] == 0 || (x + 1 == cellX && y == cellY)) && (liField[x + 1][y] > counter + 1 || liField[x + 1][y] == -1)) {
+            liAlg(liField, cellX, cellY, x + 1, y, counter + 1);
+        }
+    }
+    if (y > 0) {
+        if ((field[x][y - 1] == 0 || (x == cellX && y - 1 == cellY)) && (liField[x][y - 1] > counter + 1 || liField[x][y - 1] == -1)) {
+            liAlg(liField, cellX, cellY, x, y - 1, counter + 1);
+        }
+    }
+    if (y < 8) {
+        if ((field[x][y + 1] == 0 || (x == cellX && y + 1 == cellY)) && (liField[x][y + 1] > counter + 1 || liField[x][y + 1] == -1)) {
+            liAlg(liField, cellX, cellY, x, y + 1, counter + 1);
+        }
+    }
+    return;
+}
+
+bool searchLines() {
+    return false;
 }
 
 void drawBorders(sf::RenderWindow& window) {
@@ -146,6 +176,57 @@ void showText(sf::RenderWindow& window, const std::string& first, const std::str
     return;
 }
 
+void display(sf::RenderWindow& window) {
+    window.clear(sf::Color(backgroundColor));
+    drawBorders(window);
+    showField(window);
+    if (gameOver) showText(window, "You lose!", "Your score:");
+    else showText(window, "Your score:", "Highscore:");
+    window.display();
+
+    return;
+}
+
+bool moveCell(sf::RenderWindow& window, const uint8_t& x1, const uint8_t& y1, const uint8_t& x2, const uint8_t& y2) {
+    std::vector<std::vector<int8_t>> liField(9, std::vector<int8_t>(9, -1));
+    liAlg(liField, x1, y1, x2, y2);
+    if (liField[x1][y1] == -1) return false;
+
+    uint8_t curX = x1, curY = y1, left = liField[x1][y1];
+    while (curX != x2 || curY != y2) {
+        uint8_t cell = field[curX][curY];
+        field[curX][curY] = 0;
+        --left;
+
+        if (curX > 0) {
+            if (liField[curX - 1][curY] == left) {
+                --curX;
+            }
+        }
+        if (curX < 8) {
+            if (liField[curX + 1][curY] == left) {
+                ++curX;
+            }
+        }
+        if (curY > 0) {
+            if (liField[curX][curY - 1] == left) {
+                --curY;
+            }
+        }
+        if (curY < 8) {
+            if (liField[curX][curY + 1] == left) {
+                ++curY;
+            }
+        }
+
+        field[curX][curY] = cell;
+        display(window);
+        sf::sleep(sf::milliseconds(60));
+    }
+
+    return true;
+}
+
 void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
     static bool isMousePressed = false;
 
@@ -170,9 +251,11 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
                 }
                 else {
                     if (field[fx][fy] == 0) {
-                        field[fx][fy] = field[selected.first][selected.second];
-                        field[selected.first][selected.second] = 0;
-                        if (!addCells()) gameOver = true;
+                        if (moveCell(window, selected.first, selected.second, fx, fy)) {
+                            if (!searchLines()) {
+                                if (!addCells()) gameOver = true;
+                            }
+                        }
                     }
                     selected.first = -1;
                     selected.second = -1;
@@ -197,15 +280,10 @@ int main() {
     startup(gameWindow);
 
     while (gameWindow.isOpen()) {
-        gameWindow.clear(sf::Color(backgroundColor));
         sf::Event gameEvent;
         while (gameWindow.pollEvent(gameEvent)) gameEventProcessing(gameWindow, gameEvent);
 
-        drawBorders(gameWindow);
-        showField(gameWindow);
-        if (gameOver) showText(gameWindow, "You lose!", "Your score:");
-        else showText(gameWindow, "Your score:", "Highscore:");
-        gameWindow.display();
+        display(gameWindow);
     }
 
     return 0;

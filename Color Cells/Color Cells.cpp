@@ -1,4 +1,4 @@
-#define _title "Color Cells - ver. 0.31"
+#define _title "Color Cells - ver. 0.32"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -48,7 +48,6 @@ bool addCells(uint8_t toAdd = 3) {
 }
 
 void reload() {
-    std::srand(std::time(nullptr));
     field.assign(9, std::vector<uint8_t>(9, 0));
     gameOver = false;
     addCells();

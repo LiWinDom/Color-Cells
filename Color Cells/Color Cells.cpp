@@ -1,7 +1,8 @@
-#define _title "Color Cells - ver. 0.42"
+#define _title "Color Cells - beta 1.0"
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#include <fstream>
 #include <ctime>
 #include <SFML/Graphics.hpp>
 
@@ -15,11 +16,41 @@ const uint8_t borderThinkness = 2; //border thinkness in pixels, set to 0, if yo
 
 std::vector<std::vector<uint8_t>> field;
 std::pair<int8_t, int8_t> selected(-1, -1);
+uint16_t score = 0, highscore = 0;
 bool gameOver = false;
+std::fstream file;
 const uint8_t colors[7] = {195, 51, 15, 243, 207, 63, 227};
 //                          |   |   |    |    |   |    |
 //                         red  |  blue  | magenta|  orange
 //                            green    yellow    cyan
+
+void save() {
+    file.open("data.ccd");
+    if (!file.is_open()) {
+        std::ofstream kek;
+        kek.open("data.ccd");
+        kek.close();
+    }
+    file << highscore;
+    file.close();
+
+    return;
+}
+
+void load() {
+    file.open("data.ccd");
+    if (!file.is_open()) {
+        std::ofstream kek;
+        kek.open("data.ccd");
+        kek.close();
+    }
+    else {
+        file >> highscore;
+    }
+    file.close();
+
+    return;
+}
 
 uint8_t countFreeCells() {
     uint8_t free = 0;
@@ -32,13 +63,14 @@ uint8_t countFreeCells() {
     return free;
 }
 
-bool addCells(uint8_t toAdd = 3) {
+bool addCells(const uint8_t& toAdd = 3) {
     if (countFreeCells() < toAdd) return false;
     for (int k = 0; k < toAdd; ++k) {
         do {
             uint8_t addX = std::rand() % 9, addY = std::rand() % 9;
             if (field[addX][addY] == 0) {
-                field[addX][addY] = colors[std::rand() % 7];
+                //if (!(std::rand() % 30)) field[addX][addY] = 1;
+                /*else*/ field[addX][addY] = colors[std::rand() % 7];
                 break;
             }
         }
@@ -62,6 +94,7 @@ void startup(sf::RenderWindow& window) {
     window.setVerticalSyncEnabled(true);
     std::srand(std::time(nullptr));
     reload();
+    load();
 
     return;
 }
@@ -91,7 +124,120 @@ void liAlg(std::vector<std::vector<int8_t>>& liField, const uint8_t& cellX, cons
     return;
 }
 
-bool searchLines() {
+bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
+    uint8_t curX = movedX, curY = movedY;
+    uint8_t totalCells = 0, curCells1 = 0, curCells2 = 0, curColor = field[movedX][movedY];
+
+    // | line
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells1;
+        if (curX == 0) break;
+        --curX;
+    }
+    curX = movedX;
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells2;
+        if (curX == 8) break;
+        ++curX;
+    }
+    if (curCells1 + curCells2 - 1 >= 5) {
+        totalCells += curCells1 + curCells2 - 1;
+        for (uint8_t i = 1; i < curCells1; ++i) {
+            field[movedX - i][movedY] = 0;
+        }
+        for (uint8_t i = 1; i < curCells2; ++i) {
+            field[movedX + i][movedY] = 0;
+        }
+    }
+    curCells1 = 0; curCells2 = 0; curX = movedX;
+
+    // - line
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells1;
+        if (curY == 0) break;
+        --curY;
+    }
+    curY = movedY;
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells2;
+        if (curY == 8) break;
+        ++curY;
+    }
+    if (curCells1 + curCells2 - 1 >= 5) {
+        totalCells += curCells1 + curCells2 - 1;
+        for (uint8_t i = 1; i < curCells1; ++i) {
+            field[movedX][movedY - i] = 0;
+        }
+        for (uint8_t i = 1; i < curCells2; ++i) {
+            field[movedX][movedY + i] = 0;
+        }
+    }
+    curCells1 = 0; curCells2 = 0; curY = movedY;
+
+    // \ line
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells1;
+        if (curX == 0 || curY == 0) break;
+        --curX; --curY;
+    }
+    curX = movedX; curY = movedY;
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells2;
+        if (curX == 8 || curY == 8) break;
+        ++curX; ++curY;
+    }
+    if (curCells1 + curCells2 - 1 >= 5) {
+        totalCells += curCells1 + curCells2 - 1;
+        for (uint8_t i = 1; i < curCells1; ++i) {
+            field[movedX - i][movedY - i] = 0;
+        }
+        for (uint8_t i = 1; i < curCells2; ++i) {
+            field[movedX + i][movedY + i] = 0;
+        }
+    }
+    curCells1 = 0; curCells2 = 0; curX = movedX; curY = movedY;
+
+    // / line
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells1;
+        if (curX == 0 || curY == 8) break;
+        --curX; ++curY;
+    }
+    curX = movedX; curY = movedY;
+    while (true) {
+        if (field[curX][curY] != curColor) break;
+        ++curCells2;
+        if (curX == 8 || curY == 0) break;
+        ++curX; --curY;
+    }
+    if (curCells1 + curCells2 - 1 >= 5) {
+        totalCells += curCells1 + curCells2 - 1;
+        for (uint8_t i = 1; i < curCells1; ++i) {
+            field[movedX - i][movedY + i] = 0;
+        }
+        for (uint8_t i = 1; i < curCells2; ++i) {
+            field[movedX + i][movedY - i] = 0;
+        }
+    }
+
+    if (totalCells) {
+        score += 10;
+        totalCells -= 5;
+        for (uint8_t i = 1; i <= totalCells; ++i) {
+            score += i * 3;
+        }
+        field[movedX][movedY] = 0;
+        highscore = std::max(highscore, score);
+        save();
+        return true;
+    }
     return false;
 }
 
@@ -115,6 +261,7 @@ void drawBorders(sf::RenderWindow& window) {
 }
 
 uint32_t convertColor(const uint8_t& color) {
+    if (color == 1) return 0x808080FF;
     uint8_t rColor, gColor, bColor, tColor;
 
     rColor = (color >> 6) * 64;
@@ -180,8 +327,9 @@ void display(sf::RenderWindow& window) {
     window.clear(sf::Color(backgroundColor));
     drawBorders(window);
     showField(window);
-    if (gameOver) showText(window, "You lose!", "Your score:");
-    else showText(window, "Your score:", "Highscore:");
+    
+    if (gameOver) showText(window, "You lose!", "Your score: " + std::to_string(score));
+    else showText(window, "Your score: " + std::to_string(score) , "Highscore: " + std::to_string(highscore));
     window.display();
 
     return;
@@ -254,7 +402,7 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
                 else {
                     if (field[fx][fy] == 0) {
                         if (moveCell(window, selected.first, selected.second, fx, fy)) {
-                            if (!searchLines()) {
+                            if (!deleteLines(fx, fy)) {
                                 if (!addCells()) gameOver = true;
                             }
                         }

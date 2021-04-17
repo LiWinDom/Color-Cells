@@ -1,4 +1,4 @@
-#define _title "Color Cells - beta 1.0"
+#define _title "Color Cells - beta 1.1"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -31,7 +31,15 @@ void save() {
         kek.open("data.ccd");
         kek.close();
     }
-    file << highscore;
+    file << highscore << '\n';
+    //saving current game
+    for (uint8_t i = 0; i < 9; ++i) {
+        for (uint8_t j = 0; j < 9; ++j) {
+            file << field[i][j];
+        }
+        file << '\n';
+    }
+    file << score << ' ' << gameOver << '\n';
     file.close();
 
     return;
@@ -46,6 +54,13 @@ void load() {
     }
     else {
         file >> highscore;
+        //current game
+        for (uint8_t i = 0; i < 9; ++i) {
+            for (uint8_t j = 0; j < 9; ++j) {
+                file >> field[i][j];
+            }
+        }
+        file >> score >> gameOver;
     }
     file.close();
 
@@ -64,8 +79,8 @@ uint8_t countFreeCells() {
 }
 
 bool addCells(const uint8_t& toAdd = 3) {
-    if (countFreeCells() < toAdd) return false;
-    for (int k = 0; k < toAdd; ++k) {
+    uint8_t left = countFreeCells();
+    for (int k = 0; k < std::min(toAdd, left); ++k) {
         do {
             uint8_t addX = std::rand() % 9, addY = std::rand() % 9;
             if (field[addX][addY] == 0) {
@@ -76,11 +91,13 @@ bool addCells(const uint8_t& toAdd = 3) {
         }
         while (true);
     }
+    if (left < toAdd) return false;
     return true;
 }
 
 void reload() {
     field.assign(9, std::vector<uint8_t>(9, 0));
+    score = 0;
     gameOver = false;
     addCells();
 
@@ -235,7 +252,6 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
         }
         field[movedX][movedY] = 0;
         highscore = std::max(highscore, score);
-        save();
         return true;
     }
     return false;
@@ -393,22 +409,19 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
         if (pos.x > 0 && pos.y > 0) {
             if (pos.x < (9 * cellSize) + (9 * borderThinkness) && pos.y < (9 * cellSize) + (9 * borderThinkness)) {
                 uint16_t fx = pos.y / (cellSize + borderThinkness), fy = pos.x / (cellSize + borderThinkness);
-                if (selected.first == -1 || selected.second == -1) {
-                    if (field[fx][fy] != 0) {
-                        selected.first = fx;
-                        selected.second = fy;
-                    }
+                if (field[fx][fy] != 0) {
+                    selected.first = fx;
+                    selected.second = fy;
                 }
-                else {
-                    if (field[fx][fy] == 0) {
-                        if (moveCell(window, selected.first, selected.second, fx, fy)) {
-                            if (!deleteLines(fx, fy)) {
-                                if (!addCells()) gameOver = true;
-                            }
+                else if (selected.first != -1 && selected.second != -1) {
+                    if (moveCell(window, selected.first, selected.second, fx, fy)) {
+                        if (!deleteLines(fx, fy)) {
+                            if (!addCells()) gameOver = true;
                         }
                     }
                     selected.first = -1;
                     selected.second = -1;
+                    save();
                 }
             }
         }

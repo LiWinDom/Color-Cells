@@ -1,4 +1,4 @@
-#define _title "Color Cells - beta 1.1"
+#define _title "Color Cells - beta 1.2"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -14,7 +14,7 @@ const uint32_t textColor = 0x000000FF; //color of text in HEX format (0x11223344
 const uint32_t borderColor = 0xA0A0A0FF; //color of borders in HEX format (0x11223344: 11 - red color, 22 - green color, 33 - blue color, 44 - alpha channel)
 const uint8_t borderThinkness = 2; //border thinkness in pixels, set to 0, if you don't want to see borders
 
-std::vector<std::vector<uint8_t>> field;
+std::vector<std::vector<uint8_t>> field, next;
 std::pair<int8_t, int8_t> selected(-1, -1);
 uint16_t score = 0, highscore = 0;
 bool gameOver = false;
@@ -39,6 +39,12 @@ void save() {
         file << '\n';
     }
     file << score << ' ' << gameOver << '\n';
+    for (uint8_t i = 0; i < 9; ++i) {
+        for (uint8_t j = 0; j < 9; ++j) {
+            file << next[i][j] << ' ';
+        }
+        file << '\n';
+    }
     file.close();
 
     return;
@@ -59,6 +65,11 @@ void load() {
             }
         }
         file >> score >> gameOver;
+        for (uint8_t i = 0; i < 9; ++i) {
+            for (uint8_t j = 0; j < 9; ++j) {
+                file >> next[i][j];
+            }
+        }
     }
     file.close();
 
@@ -74,69 +85,6 @@ uint8_t countFreeCells() {
         }
     }
     return free;
-}
-
-bool addCells(const uint8_t& toAdd = 3) {
-    uint8_t left = countFreeCells();
-    for (int k = 0; k < std::min(toAdd, left); ++k) {
-        do {
-            uint8_t addX = std::rand() % 9, addY = std::rand() % 9;
-            if (field[addX][addY] == 0) {
-                //if (!(std::rand() % 30)) field[addX][addY] = 1;
-                /*else*/ field[addX][addY] = colors[std::rand() % 7];
-                break;
-            }
-        }
-        while (true);
-    }
-    if (left <= toAdd) return false;
-    return true;
-}
-
-void reload() {
-    field.assign(9, std::vector<uint8_t>(9, 0));
-    gameOver = false;
-    score = 0;
-    addCells();
-
-    return;
-}
-
-void startup(sf::RenderWindow& window) {
-    sf::Image icon;
-    icon.loadFromFile("resourses/grafics/icon.png");
-    window.setIcon(48, 48, icon.getPixelsPtr());
-    window.setVerticalSyncEnabled(true);
-    std::srand(std::time(nullptr));
-    reload();
-    load();
-
-    return;
-}
-
-void liAlg(std::vector<std::vector<int8_t>>& liField, const uint8_t& cellX, const uint8_t& cellY, const uint8_t& x, const uint8_t& y, const uint8_t counter = 0) {
-    liField[x][y] = counter;
-    if (x > 0) {
-        if ((field[x - 1][y] == 0 || (x - 1 == cellX && y == cellY)) && (liField[x - 1][y] > counter + 1 || liField[x - 1][y] == -1)) {
-            liAlg(liField, cellX, cellY, x - 1, y, counter + 1);
-        }
-    }
-    if (x < 8) {
-        if ((field[x + 1][y] == 0 || (x + 1 == cellX && y == cellY)) && (liField[x + 1][y] > counter + 1 || liField[x + 1][y] == -1)) {
-            liAlg(liField, cellX, cellY, x + 1, y, counter + 1);
-        }
-    }
-    if (y > 0) {
-        if ((field[x][y - 1] == 0 || (x == cellX && y - 1 == cellY)) && (liField[x][y - 1] > counter + 1 || liField[x][y - 1] == -1)) {
-            liAlg(liField, cellX, cellY, x, y - 1, counter + 1);
-        }
-    }
-    if (y < 8) {
-        if ((field[x][y + 1] == 0 || (x == cellX && y + 1 == cellY)) && (liField[x][y + 1] > counter + 1 || liField[x][y + 1] == -1)) {
-            liAlg(liField, cellX, cellY, x, y + 1, counter + 1);
-        }
-    }
-    return;
 }
 
 bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
@@ -256,6 +204,99 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
     return false;
 }
 
+void generateCells(const uint8_t& toGen = 3) {
+    uint8_t left = countFreeCells();
+    next.assign(9, std::vector<uint8_t>(9, 0));
+    for (uint8_t k = 0; k < std::min(toGen, left); ++k) {
+        do {
+            uint8_t addX = std::rand() % 9, addY = std::rand() % 9;
+            if (field[addX][addY] == 0) {
+                //if (!(std::rand() % 30)) field[addX][addY] = 1;
+                /*else*/ next[addX][addY] = colors[std::rand() % 7];
+                break;
+            }
+        }
+        while (true);
+    }
+    return;
+}
+
+bool addCells(const uint8_t& toAdd = 3) {
+    uint8_t left = countFreeCells();
+    for (uint8_t i = 0; i < 9; ++i) {
+        for (uint8_t j = 0; j < 9; ++j) {
+            if (next[i][j]) {
+                if (field[i][j]) {
+                    do {
+                        uint8_t addX = std::rand() % 9, addY = std::rand() % 9;
+                        if (field[addX][addY] == 0) {
+                            field[addX][addY] = next[i][j];
+                            deleteLines(addX, addY);
+                            break;
+                        }
+                    }
+                    while (true);
+                }
+                else {
+                    field[i][j] = next[i][j];
+                    deleteLines(i, j);
+                }
+            }
+        }
+    }
+    if (left <= toAdd) return false;
+    generateCells(std::min(left, toAdd));
+    return true;
+}
+
+void reload() {
+    field.assign(9, std::vector<uint8_t>(9, 0));
+    next.assign(9, std::vector<uint8_t>(9, 0));
+    gameOver = false;
+    score = 0;
+    generateCells();
+    addCells();
+
+    return;
+}
+
+void startup(sf::RenderWindow& window) {
+    sf::Image icon;
+    icon.loadFromFile("resourses/grafics/icon.png");
+    window.setIcon(48, 48, icon.getPixelsPtr());
+    window.setVerticalSyncEnabled(true);
+    std::srand(std::time(nullptr));
+    reload();
+    load();
+
+    return;
+}
+
+void liAlg(std::vector<std::vector<int8_t>>& liField, const uint8_t& cellX, const uint8_t& cellY, const uint8_t& x, const uint8_t& y, const uint8_t counter = 0) {
+    liField[x][y] = counter;
+    if (x > 0) {
+        if ((field[x - 1][y] == 0 || (x - 1 == cellX && y == cellY)) && (liField[x - 1][y] > counter + 1 || liField[x - 1][y] == -1)) {
+            liAlg(liField, cellX, cellY, x - 1, y, counter + 1);
+        }
+    }
+    if (x < 8) {
+        if ((field[x + 1][y] == 0 || (x + 1 == cellX && y == cellY)) && (liField[x + 1][y] > counter + 1 || liField[x + 1][y] == -1)) {
+            liAlg(liField, cellX, cellY, x + 1, y, counter + 1);
+        }
+    }
+    if (y > 0) {
+        if ((field[x][y - 1] == 0 || (x == cellX && y - 1 == cellY)) && (liField[x][y - 1] > counter + 1 || liField[x][y - 1] == -1)) {
+            liAlg(liField, cellX, cellY, x, y - 1, counter + 1);
+        }
+    }
+    if (y < 8) {
+        if ((field[x][y + 1] == 0 || (x == cellX && y + 1 == cellY)) && (liField[x][y + 1] > counter + 1 || liField[x][y + 1] == -1)) {
+            liAlg(liField, cellX, cellY, x, y + 1, counter + 1);
+        }
+    }
+    return;
+}
+
 void drawBorders(sf::RenderWindow& window) {
     for (int i = 0; i <= 9; ++i) {
         sf::RectangleShape rect1;
@@ -302,6 +343,11 @@ void showField(sf::RenderWindow& window) {
             if (i == selected.first && j == selected.second) {
                 rect.setSize(sf::Vector2f(cellSize - borderThinkness * 6, cellSize - borderThinkness * 6));
                 rect.setPosition(j * cellSize + (j + 4) * borderThinkness, i * cellSize + (i + 4) * borderThinkness);
+            }
+            else if (next[i][j]) {
+                color = convertColor(next[i][j]);
+                rect.setSize(sf::Vector2f(cellSize - borderThinkness * 18, cellSize - borderThinkness * 18));
+                rect.setPosition(j * cellSize + (j + 10) * borderThinkness, i * cellSize + (i + 10) * borderThinkness);
             }
             else {
                 rect.setSize(sf::Vector2f(cellSize - borderThinkness * 2, cellSize - borderThinkness * 2));

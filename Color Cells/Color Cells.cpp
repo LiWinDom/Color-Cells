@@ -1,4 +1,4 @@
-#define _title "Color Cells - beta 1.2"
+#define _title "Color Cells - beta 1.21"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -209,15 +209,16 @@ void generateCells(const uint8_t& toGen = 3) {
     next.assign(9, std::vector<uint8_t>(9, 0));
     for (uint8_t k = 0; k < std::min(toGen, left); ++k) {
         do {
-            uint8_t addX = std::rand() % 9, addY = std::rand() % 9;
-            if (field[addX][addY] == 0) {
+            uint8_t genX = std::rand() % 9, genY = std::rand() % 9;
+            if (field[genX][genY] == 0 && next[genX][genY] == 0) {
                 //if (!(std::rand() % 30)) field[addX][addY] = 1;
-                /*else*/ next[addX][addY] = colors[std::rand() % 7];
+                /*else*/ next[genX][genY] = colors[std::rand() % 7];
                 break;
             }
         }
         while (true);
     }
+    int kek = 1;
     return;
 }
 
@@ -244,7 +245,10 @@ bool addCells(const uint8_t& toAdd = 3) {
             }
         }
     }
-    if (left <= toAdd) return false;
+    if (left <= toAdd) {
+        next.assign(9, std::vector<uint8_t>(9, 0));
+        return false;
+    }
     generateCells(std::min(left, toAdd));
     return true;
 }
@@ -454,7 +458,11 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
         if (pos.x > 0 && pos.y > 0) {
             if (pos.x < (9 * cellSize) + (9 * borderThinkness) && pos.y < (9 * cellSize) + (9 * borderThinkness)) {
                 uint16_t fx = pos.y / (cellSize + borderThinkness), fy = pos.x / (cellSize + borderThinkness);
-                if (field[fx][fy] != 0) {
+                if (fx == selected.first && fy == selected.second) {
+                    selected.first = -1;
+                    selected.second = -1;
+                }
+                else if (field[fx][fy] != 0) {
                     selected.first = fx;
                     selected.second = fy;
                 }

@@ -1,4 +1,4 @@
-#define _title "Color Cells - beta 1.21"
+#define _title "Color Cells - beta 1.3"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -91,20 +91,40 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
     uint8_t curX = movedX, curY = movedY;
     uint8_t totalCells = 0, curCells1 = 0, curCells2 = 0, curColor = field[movedX][movedY];
 
-    // | line
+    // | up line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curX == 0) break;
+            --curX;
+        }
+    }
+    curX = movedX;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells1;
         if (curX == 0) break;
         --curX;
     }
+    curX = movedX; curColor = field[movedX][movedY];
+    // | down line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curX == 8) break;
+            ++curX;
+        }
+    }
     curX = movedX;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells2;
         if (curX == 8) break;
         ++curX;
     }
+    //counting | cells
     if (curCells1 + curCells2 - 1 >= 5) {
         totalCells += curCells1 + curCells2 - 1;
         for (uint8_t i = 1; i < curCells1; ++i) {
@@ -114,22 +134,42 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
             field[movedX + i][movedY] = 0;
         }
     }
-    curCells1 = 0; curCells2 = 0; curX = movedX;
+    curCells1 = 0; curCells2 = 0; curX = movedX; curColor = field[movedX][movedY];
 
-    // - line
+    // - left line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curY == 0) break;
+            --curY;
+        }
+    }
+    curY = movedY;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells1;
         if (curY == 0) break;
         --curY;
     }
+    curY = movedY; curColor = field[movedX][movedY];
+    // - right line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curY == 8) break;
+            ++curY;
+        }
+    }
     curY = movedY;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells2;
         if (curY == 8) break;
         ++curY;
     }
+    //couting - cells
     if (curCells1 + curCells2 - 1 >= 5) {
         totalCells += curCells1 + curCells2 - 1;
         for (uint8_t i = 1; i < curCells1; ++i) {
@@ -139,22 +179,42 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
             field[movedX][movedY + i] = 0;
         }
     }
-    curCells1 = 0; curCells2 = 0; curY = movedY;
+    curCells1 = 0; curCells2 = 0; curY = movedY; curColor = field[movedX][movedY];
 
-    // \ line
+    // \ up left line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curX == 0 || curY == 0) break;
+            --curX; --curY;
+        }
+    }
+    curX = movedX; curY = movedY;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells1;
         if (curX == 0 || curY == 0) break;
         --curX; --curY;
     }
+    curX = movedX; curY = movedY; curColor = field[movedX][movedY];
+    // \ down right line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curX == 8 || curY == 8) break;
+            ++curX; ++curY;
+        }
+    }
     curX = movedX; curY = movedY;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells2;
         if (curX == 8 || curY == 8) break;
         ++curX; ++curY;
     }
+    //counting \ cells
     if (curCells1 + curCells2 - 1 >= 5) {
         totalCells += curCells1 + curCells2 - 1;
         for (uint8_t i = 1; i < curCells1; ++i) {
@@ -164,22 +224,42 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
             field[movedX + i][movedY + i] = 0;
         }
     }
-    curCells1 = 0; curCells2 = 0; curX = movedX; curY = movedY;
+    curCells1 = 0; curCells2 = 0; curX = movedX; curY = movedY; curColor = field[movedX][movedY];
 
-    // / line
+    // / up right line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curX == 0 || curY == 8) break;
+            --curX; ++curY;
+        }
+    }
+    curX = movedX; curY = movedY;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells1;
         if (curX == 0 || curY == 8) break;
         --curX; ++curY;
     }
+    curX = movedX; curY = movedY; curColor = field[movedX][movedY];
+    // / down left line
+    if (curColor == 1) {
+        while (curColor == 1) {
+            if (field[curX][curY] == 0) break;
+            curColor = field[curX][curY];
+            if (curX == 8 || curY == 0) break;
+            ++curX; --curY;
+        }
+    }
     curX = movedX; curY = movedY;
     while (true) {
-        if (field[curX][curY] != curColor) break;
+        if (field[curX][curY] != curColor && field[curX][curY] != 1) break;
         ++curCells2;
         if (curX == 8 || curY == 0) break;
         ++curX; --curY;
     }
+    //counting / cells
     if (curCells1 + curCells2 - 1 >= 5) {
         totalCells += curCells1 + curCells2 - 1;
         for (uint8_t i = 1; i < curCells1; ++i) {
@@ -190,7 +270,7 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
         }
     }
 
-    if (totalCells) {
+    if (totalCells > 4) {
         score += 10;
         totalCells -= 5;
         for (uint8_t i = 1; i <= totalCells; ++i) {
@@ -206,13 +286,12 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
 
 void generateCells(const uint8_t& toGen = 3) {
     uint8_t left = countFreeCells();
-    next.assign(9, std::vector<uint8_t>(9, 0));
     for (uint8_t k = 0; k < std::min(toGen, left); ++k) {
         do {
             uint8_t genX = std::rand() % 9, genY = std::rand() % 9;
             if (field[genX][genY] == 0 && next[genX][genY] == 0) {
-                //if (!(std::rand() % 30)) field[addX][addY] = 1;
-                /*else*/ next[genX][genY] = colors[std::rand() % 7];
+                if (!(std::rand() % 30)) next[genX][genY] = 1;
+                else next[genX][genY] = colors[std::rand() % 7];
                 break;
             }
         }
@@ -242,11 +321,11 @@ bool addCells(const uint8_t& toAdd = 3) {
                     field[i][j] = next[i][j];
                     deleteLines(i, j);
                 }
+                next[i][j] = 0;
             }
         }
     }
     if (left <= toAdd) {
-        next.assign(9, std::vector<uint8_t>(9, 0));
         return false;
     }
     generateCells(std::min(left, toAdd));

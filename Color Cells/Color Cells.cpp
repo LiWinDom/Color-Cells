@@ -1,4 +1,4 @@
-#define _title "Color Cells - beta 2.0"
+#define _title "Color Cells - beta 2.1"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -8,23 +8,25 @@
 
 //visible options
 const uint8_t cellSize = 50; //size of each sell in pixels
-const uint8_t fontSize = 20; //size of font in pixels
+const uint8_t textSize = 20; //size of font in pixels
 const uint32_t backgroundColor = 0xFFFFFFFF; //color of background in HEX format (0x11223344: 11 - red color, 22 - green color, 33 - blue color, 44 - alpha channel)
 const uint32_t textColor = 0x000000FF; //color of text in HEX format (0x11223344: 11 - red color, 22 - green color, 33 - blue color, 44 - alpha channel)
 const uint32_t borderColor = 0xA0A0A0FF; //color of borders in HEX format (0x11223344: 11 - red color, 22 - green color, 33 - blue color, 44 - alpha channel)
 const uint8_t borderThinkness = 2; //border thinkness in pixels, set to 0, if you don't want to see borders
 
-uint8_t screen = 1; //0 - game, 1 - main menu
+uint8_t screen = 1; //0 - game, 1 - main menu, 2 - difficulty select
+uint8_t gamemode = 0b00000110;
 std::vector<std::vector<uint8_t>> field, next;
 std::pair<int8_t, int8_t> selected(-1, -1);
 uint16_t score = 0, highscore = 0;
 bool gameOver = false;
 std::fstream file;
 sf::Font font;
-const uint8_t colors[7] = {195, 51, 15, 243, 207, 63, 227};
-//                          |   |   |    |    |   |    |
-//                         red  |  blue  | magenta|  orange
-//                            green    yellow    cyan
+const uint16_t width = (9 * cellSize) + 10 * borderThinkness, height = (9 * cellSize) + 10 * borderThinkness + (textSize * 2.75);
+const uint8_t colors[7] = {195, 51, 15, 243, 63, 207, 227};
+//                          |   |   |    |   |    |    |
+//                         red  |  blue  |  cyan  |  orange
+//                            green    yellow   magenta
 
 void save() {
     file.open("data.ccd");
@@ -292,7 +294,10 @@ void generateCells(const uint8_t& toGen = 3) {
             uint8_t genX = std::rand() % 9, genY = std::rand() % 9;
             if (field[genX][genY] == 0 && next[genX][genY] == 0) {
                 if (!(std::rand() % 30)) next[genX][genY] = 1;
-                else next[genX][genY] = colors[std::rand() % 7];
+                else {
+                    if ((gamemode & 3) == 0 || (gamemode & 3) == 1) next[genX][genY] = colors[std::rand() % 5];
+                    else next[genX][genY] = colors[std::rand() % 7];
+                }
                 break;
             }
         }
@@ -338,8 +343,10 @@ void reload() {
     next.assign(9, std::vector<uint8_t>(9, 0));
     gameOver = false;
     score = 0;
-    generateCells();
-    addCells();
+    uint8_t toGen = 3;
+    if ((gamemode & 3) == 0) toGen = 2;
+    generateCells(toGen);
+    addCells(toGen);
 
     return;
 }
@@ -422,7 +429,7 @@ void showField(sf::RenderWindow& window) {
                 rect.setSize(sf::Vector2f(cellSize - borderThinkness * 6, cellSize - borderThinkness * 6));
                 rect.setPosition(j * cellSize + (j + 4) * borderThinkness, i * cellSize + (i + 4) * borderThinkness);
             }
-            else if (next[i][j]) {
+            else if (next[i][j] && (gamemode & 3) != 3) {
                 color = convertColor(next[i][j]);
                 rect.setSize(sf::Vector2f(cellSize - borderThinkness * 18, cellSize - borderThinkness * 18));
                 rect.setPosition(j * cellSize + (j + 10) * borderThinkness, i * cellSize + (i + 10) * borderThinkness);
@@ -440,20 +447,63 @@ void showField(sf::RenderWindow& window) {
 }
 
 void showMainMenu(sf::RenderWindow& window) {
-    sf::Text newText, loadText;
+    sf::Text titleText, newText, loadText;
+    titleText.setFont(font);
     newText.setFont(font);
     loadText.setFont(font);
-    newText.setCharacterSize(fontSize * 2);
-    loadText.setCharacterSize(fontSize * 2);
+    titleText.setCharacterSize(textSize * 1.5);
+    newText.setCharacterSize(textSize * 2.2);
+    loadText.setCharacterSize(textSize * 2.2);
+    titleText.setFillColor(sf::Color(0x00C0C0FF));
     newText.setFillColor(sf::Color(textColor));
     loadText.setFillColor(sf::Color(textColor));
+    titleText.setString("Color Cells");
     newText.setString("New game");
     loadText.setString("Load last game");
 
-    newText.setPosition(((9 * cellSize) + 10 * borderThinkness - newText.getLocalBounds().width) / 2, ((9 * cellSize) + 10 * borderThinkness + (fontSize * 2.75) - newText.getLocalBounds().height * 5) / 2);
-    loadText.setPosition(((9 * cellSize) + 10 * borderThinkness - loadText.getLocalBounds().width) / 2 - 0.5, ((9 * cellSize) + 10 * borderThinkness + (fontSize * 2.75) + loadText.getLocalBounds().height * 3) / 2);
+    titleText.setPosition(std::floor((width - titleText.getLocalBounds().width) / 2), std::floor(textSize));
+    newText.setPosition(std::floor((width - newText.getLocalBounds().width) / 2), std::floor((height - newText.getLocalBounds().height) / 2 - newText.getLocalBounds().height * 3));
+    loadText.setPosition(std::floor((width - loadText.getLocalBounds().width) / 2), std::floor((height - loadText.getLocalBounds().height) / 2 + loadText.getLocalBounds().height * 3));
+    window.draw(titleText);
     window.draw(newText);
     window.draw(loadText);
+
+    return;
+}
+
+void showDifficulty(sf::RenderWindow& window) {
+    sf::Text diffText, veasyText, easyText, normalText, hardText;
+    diffText.setFont(font);
+    veasyText.setFont(font);
+    easyText.setFont(font);
+    normalText.setFont(font);
+    hardText.setFont(font);
+    diffText.setCharacterSize(textSize * 1.5);
+    veasyText.setCharacterSize(textSize * 2);
+    easyText.setCharacterSize(textSize * 2);
+    normalText.setCharacterSize(textSize * 2);
+    hardText.setCharacterSize(textSize * 2);
+    diffText.setFillColor(sf::Color(0x808080FF));
+    veasyText.setFillColor(sf::Color(textColor));
+    easyText.setFillColor(sf::Color(textColor));
+    normalText.setFillColor(sf::Color(textColor));
+    hardText.setFillColor(sf::Color(textColor));
+    diffText.setString("Select difficulty");
+    veasyText.setString("Very easy");
+    easyText.setString("Easy");
+    normalText.setString("Normal");
+    hardText.setString("Hard");
+
+    diffText.setPosition(std::floor((width - diffText.getLocalBounds().width) / 2), std::floor(textSize));
+    veasyText.setPosition(std::floor((width - veasyText.getLocalBounds().width) / 2), std::floor((height - veasyText.getLocalBounds().height) / 2 - veasyText.getLocalBounds().height * 4.5));
+    easyText.setPosition(std::floor((width - easyText.getLocalBounds().width) / 2), std::floor((height - easyText.getLocalBounds().height) / 2 - easyText.getLocalBounds().height* 1.5));
+    normalText.setPosition(std::floor((width - normalText.getLocalBounds().width) / 2), std::floor((height - normalText.getLocalBounds().height) / 2 + normalText.getLocalBounds().height * 1.5));
+    hardText.setPosition(std::floor((width - hardText.getLocalBounds().width) / 2), std::floor((height - hardText.getLocalBounds().height) / 2 + hardText.getLocalBounds().height * 4.5));
+    window.draw(diffText);
+    window.draw(veasyText);
+    window.draw(easyText);
+    window.draw(normalText);
+    window.draw(hardText);
 
     return;
 }
@@ -462,15 +512,15 @@ void showStatus(sf::RenderWindow& window, const std::string& first, const std::s
     sf::Text scoreText, highscoreText;
     scoreText.setFont(font);
     highscoreText.setFont(font);
-    scoreText.setCharacterSize(fontSize);
-    highscoreText.setCharacterSize(fontSize);
+    scoreText.setCharacterSize(textSize);
+    highscoreText.setCharacterSize(textSize);
     scoreText.setFillColor(sf::Color(textColor));
     highscoreText.setFillColor(sf::Color(textColor));
     scoreText.setString(first);
     highscoreText.setString(second);
 
-    scoreText.setPosition(fontSize * 0.25, (9 * cellSize) + 9 * borderThinkness + fontSize * 0.25);
-    highscoreText.setPosition(fontSize * 0.25, (9 * cellSize) + 9 * borderThinkness + fontSize * 1.5);
+    scoreText.setPosition(std::floor(textSize * 0.25), std::floor((9 * cellSize) + 9 * borderThinkness + textSize * 0.25));
+    highscoreText.setPosition(std::floor(textSize * 0.25), std::floor((9 * cellSize) + 9 * borderThinkness + textSize * 1.5));
     window.draw(scoreText);
     window.draw(highscoreText);
 
@@ -489,6 +539,9 @@ void display(sf::RenderWindow& window) {
         break;
     case 1:
         showMainMenu(window);
+        break;
+    case 2:
+        showDifficulty(window);
         break;
     }
     window.display();
@@ -557,7 +610,9 @@ void clickEvent(sf::RenderWindow& window) {
                 else if (selected.first != -1 && selected.second != -1) {
                     if (moveCell(window, selected.first, selected.second, fx, fy)) {
                         if (!deleteLines(fx, fy)) {
-                            if (!addCells()) gameOver = true;
+                            uint8_t toGen = 3;
+                            if ((gamemode & 3) == 0) toGen = 2;
+                            if (!addCells(toGen)) gameOver = true;
                         }
                     }
                     selected.first = -1;
@@ -568,10 +623,32 @@ void clickEvent(sf::RenderWindow& window) {
         }
         break;
     case 1:
-        if (pos.y >= ((9 * cellSize) + 10 * borderThinkness + (fontSize * 2.75)) / 2) {
-            load();
+        if (pos.y > height / 4 && pos.y < height / 2) {
+            screen = 2;
         }
+        else if (pos.y >= height / 2 && pos.y < (height / 2 + height / 4)) {
+            load();
+            screen = 0;
+        }
+        break;
+    case 2:
         screen = 0;
+        if (pos.y > height / 4 && pos.y < height / 2 - height / 6) {
+            gamemode = 0b00000100;
+        }
+        else if (pos.y >= height / 2 - height / 6 && pos.y < height / 2) {
+            gamemode = 0b00000101;
+        }
+        else if (pos.y >= height / 2 && pos.y < height / 2 + height / 6) {
+            gamemode = 0b00000110;
+        }
+        else if (pos.y >= height / 2 + height / 6 && pos.y < height - height / 4) {
+            gamemode = 0b00000111;
+        }
+        else {
+            screen = 2;
+        }
+        reload();
         break;
     }
 }
@@ -603,7 +680,7 @@ void gameEventProcessing(sf::RenderWindow& window, sf::Event& event) {
 }
 
 int main() {
-    sf::RenderWindow gameWindow(sf::VideoMode((9 * cellSize) + 10 * borderThinkness, (9 * cellSize) + 10 * borderThinkness + (fontSize * 2.75)), _title, sf::Style::Close);
+    sf::RenderWindow gameWindow(sf::VideoMode(width, height), _title, sf::Style::Close);
     startup(gameWindow);
 
     while (gameWindow.isOpen()) {
@@ -611,6 +688,7 @@ int main() {
         while (gameWindow.pollEvent(gameEvent)) gameEventProcessing(gameWindow, gameEvent);
 
         display(gameWindow);
+        gamemode |= 0;
     }
 
     return 0;

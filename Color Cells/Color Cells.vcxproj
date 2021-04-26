@@ -159,6 +159,15 @@
   <ItemGroup>
     <ClCompile Include="Color Cells.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Color Cells.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resourses\grafics\icon.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

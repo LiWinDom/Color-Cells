@@ -1,4 +1,4 @@
-#define _title "Color Cells - beta 2.1"
+#define _title "Color Cells - beta 3.0"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -18,7 +18,8 @@ uint8_t screen = 1; //0 - game, 1 - main menu, 2 - difficulty select
 uint8_t gamemode = 0b00000110;
 std::vector<std::vector<uint8_t>> field, next;
 std::pair<int8_t, int8_t> selected(-1, -1);
-uint16_t score = 0, highscore = 0;
+std::vector<uint16_t> highscore(8, 0);
+uint16_t score = 0;
 bool gameOver = false;
 std::fstream file;
 sf::Font font;
@@ -35,20 +36,20 @@ void save() {
         kek.open("data.ccd");
         kek.close();
     }
-    file << highscore << '\n';
-    for (uint8_t i = 0; i < 9; ++i) {
-        for (uint8_t j = 0; j < 9; ++j) {
-            file << field[i][j] << ' ';
-        }
-        file << '\n';
+
+    for (uint8_t i = 0; i < 8; ++i) {
+        file << highscore[i] << ' ';
     }
+    file << "\n\n";
+    file << gamemode << '\n';
     file << score << ' ' << gameOver << '\n';
     for (uint8_t i = 0; i < 9; ++i) {
         for (uint8_t j = 0; j < 9; ++j) {
-            file << next[i][j] << ' ';
+            file << field[i][j] << ' ' << next[i][j] << ' ';
         }
         file << '\n';
     }
+    file << '\n';
     file.close();
 
     return;
@@ -62,16 +63,14 @@ bool load() {
         kek.close();
         return false;
     }
-    file >> highscore;
-    for (uint8_t i = 0; i < 9; ++i) {
-        for (uint8_t j = 0; j < 9; ++j) {
-            file >> field[i][j];
-        }
+
+    for (uint8_t i = 0; i < 8; ++i) {
+        file >> highscore[i];
     }
-    file >> score >> gameOver;
+    file >> gamemode >> score >> gameOver;
     for (uint8_t i = 0; i < 9; ++i) {
         for (uint8_t j = 0; j < 9; ++j) {
-            file >> next[i][j];
+            file >> field[i][j] >> next[i][j];
         }
     }
     file.close();
@@ -280,7 +279,7 @@ bool deleteLines(const uint8_t& movedX, const uint8_t& movedY) {
             score += i * 3;
         }
         field[movedX][movedY] = 0;
-        highscore = std::max(highscore, score);
+        highscore[gamemode] = std::max(highscore[gamemode], score);
         save();
         return true;
     }
@@ -308,6 +307,7 @@ void generateCells(const uint8_t& toGen = 3) {
 }
 
 bool addCells(const uint8_t& toAdd = 3) {
+    bool deleted = false;
     uint8_t left = countFreeCells();
     for (uint8_t i = 0; i < 9; ++i) {
         for (uint8_t j = 0; j < 9; ++j) {
@@ -325,13 +325,13 @@ bool addCells(const uint8_t& toAdd = 3) {
                 }
                 else {
                     field[i][j] = next[i][j];
-                    deleteLines(i, j);
+                    if (deleteLines(i, j)) deleted = true;
                 }
                 next[i][j] = 0;
             }
         }
     }
-    if (left <= toAdd) {
+    if (left <= toAdd && !deleted) {
         return false;
     }
     generateCells(std::min(left, toAdd));
@@ -359,6 +359,7 @@ void startup(sf::RenderWindow& window) {
     window.setVerticalSyncEnabled(true);
     std::srand(std::time(nullptr));
     reload();
+    load();
 
     return;
 }
@@ -535,7 +536,7 @@ void display(sf::RenderWindow& window) {
         showField(window);
 
         if (gameOver) showStatus(window, "You lose!", "Your score: " + std::to_string(score));
-        else showStatus(window, "Your score: " + std::to_string(score), "Highscore: " + std::to_string(highscore));
+        else showStatus(window, "Your score: " + std::to_string(score), "Highscore: " + std::to_string(highscore[gamemode]));
         break;
     case 1:
         showMainMenu(window);
@@ -633,7 +634,7 @@ void clickEvent(sf::RenderWindow& window) {
         break;
     case 2:
         screen = 0;
-        if (pos.y > height / 4 && pos.y < height / 2 - height / 6) {
+        if (pos.y > height / 5 && pos.y < height / 2 - height / 6) {
             gamemode = 0b00000100;
         }
         else if (pos.y >= height / 2 - height / 6 && pos.y < height / 2) {
@@ -642,7 +643,7 @@ void clickEvent(sf::RenderWindow& window) {
         else if (pos.y >= height / 2 && pos.y < height / 2 + height / 6) {
             gamemode = 0b00000110;
         }
-        else if (pos.y >= height / 2 + height / 6 && pos.y < height - height / 4) {
+        else if (pos.y >= height / 2 + height / 6 && pos.y < height - height / 5) {
             gamemode = 0b00000111;
         }
         else {

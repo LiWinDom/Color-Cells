@@ -1,4 +1,4 @@
-#define _title "Color Cells - beta 3.0"
+#define _title "Color Cells - beta 3.1"
 #include <iostream>
 #include <algorithm>
 #include <vector>
@@ -292,9 +292,9 @@ void generateCells(const uint8_t& toGen = 3) {
         do {
             uint8_t genX = std::rand() % 9, genY = std::rand() % 9;
             if (field[genX][genY] == 0 && next[genX][genY] == 0) {
-                if (!(std::rand() % 30)) next[genX][genY] = 1;
+                if ((!(std::rand() % 30)) && (((gamemode & 4) >> 2) == 1)) next[genX][genY] = 1;
                 else {
-                    if ((gamemode & 3) == 0 || (gamemode & 3) == 1) next[genX][genY] = colors[std::rand() % 5];
+                    if ((gamemode & 2) == 0) next[genX][genY] = colors[std::rand() % 5];
                     else next[genX][genY] = colors[std::rand() % 7];
                 }
                 break;
@@ -497,7 +497,7 @@ void showDifficulty(sf::RenderWindow& window) {
 
     diffText.setPosition(std::floor((width - diffText.getLocalBounds().width) / 2), std::floor(textSize));
     veasyText.setPosition(std::floor((width - veasyText.getLocalBounds().width) / 2), std::floor((height - veasyText.getLocalBounds().height) / 2 - veasyText.getLocalBounds().height * 4.5));
-    easyText.setPosition(std::floor((width - easyText.getLocalBounds().width) / 2), std::floor((height - easyText.getLocalBounds().height) / 2 - easyText.getLocalBounds().height* 1.5));
+    easyText.setPosition(std::floor((width - easyText.getLocalBounds().width) / 2), std::floor((height - easyText.getLocalBounds().height) / 2 - easyText.getLocalBounds().height * 1.5));
     normalText.setPosition(std::floor((width - normalText.getLocalBounds().width) / 2), std::floor((height - normalText.getLocalBounds().height) / 2 + normalText.getLocalBounds().height * 1.5));
     hardText.setPosition(std::floor((width - hardText.getLocalBounds().width) / 2), std::floor((height - hardText.getLocalBounds().height) / 2 + hardText.getLocalBounds().height * 4.5));
     window.draw(diffText);
@@ -505,6 +505,31 @@ void showDifficulty(sf::RenderWindow& window) {
     window.draw(easyText);
     window.draw(normalText);
     window.draw(hardText);
+
+    return;
+}
+
+void showMode(sf::RenderWindow& window) {
+    sf::Text modeText, classicText, modernText;
+    modeText.setFont(font);
+    classicText.setFont(font);
+    modernText.setFont(font);
+    modeText.setCharacterSize(textSize * 1.5);
+    classicText.setCharacterSize(textSize * 2);
+    modernText.setCharacterSize(textSize * 2);
+    modeText.setFillColor(sf::Color(0x808080FF));
+    classicText.setFillColor(sf::Color(textColor));
+    modernText.setFillColor(sf::Color(textColor));
+    modeText.setString("Select gamemode");
+    classicText.setString("Classic");
+    modernText.setString("Modern");
+
+    modeText.setPosition(std::floor((width - modeText.getLocalBounds().width) / 2), std::floor(textSize));
+    classicText.setPosition(std::floor((width - classicText.getLocalBounds().width) / 2), std::floor((height - classicText.getLocalBounds().height) / 2 - classicText.getLocalBounds().height * 3));
+    modernText.setPosition(std::floor((width - modernText.getLocalBounds().width) / 2), std::floor((height - modernText.getLocalBounds().height) / 2 + modernText.getLocalBounds().height * 3));
+    window.draw(modeText);
+    window.draw(classicText);
+    window.draw(modernText);
 
     return;
 }
@@ -543,6 +568,9 @@ void display(sf::RenderWindow& window) {
         break;
     case 2:
         showDifficulty(window);
+        break;
+    case 3:
+        showMode(window);
         break;
     }
     window.display();
@@ -633,23 +661,34 @@ void clickEvent(sf::RenderWindow& window) {
         }
         break;
     case 2:
-        screen = 0;
         if (pos.y > height / 5 && pos.y < height / 2 - height / 6) {
-            gamemode = 0b00000100;
+            gamemode = 0b00000000;
+            screen = 3;
         }
         else if (pos.y >= height / 2 - height / 6 && pos.y < height / 2) {
-            gamemode = 0b00000101;
+            gamemode = 0b00000001;
+            screen = 3;
         }
         else if (pos.y >= height / 2 && pos.y < height / 2 + height / 6) {
-            gamemode = 0b00000110;
+            gamemode = 0b00000010;
+            screen = 3;
         }
         else if (pos.y >= height / 2 + height / 6 && pos.y < height - height / 5) {
-            gamemode = 0b00000111;
+            gamemode = 0b00000011;
+            screen = 3;
         }
-        else {
-            screen = 2;
+        break;
+    case 3:
+        if (pos.y > height / 4 && pos.y < height / 2) {
+            gamemode &= ~(1 << 2);
+            screen = 0;
+            reload();
         }
-        reload();
+        else if (pos.y >= height / 2 && pos.y < (height / 2 + height / 4)) {
+            gamemode |= (1 << 2);
+            screen = 0;
+            reload();
+        }
         break;
     }
 }
